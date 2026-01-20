@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, Edit3, ChevronLeft, ChevronRight, CheckCircle, Clock, DollarSign, List, X } from 'lucide-react';
+import { Plus, Trash2, Edit3, ChevronLeft, ChevronRight, CheckCircle, Clock, DollarSign, List, X, Sun, Moon } from 'lucide-react';
 import { 
   format, 
   addMonths, 
@@ -23,6 +23,11 @@ import PaymentModal from './components/PaymentModal';
 
 const App: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('theme');
+    return (saved as 'light' | 'dark') || 'dark';
+  });
+
   const [payments, setPayments] = useState<Payment[]>(() => {
     const saved = localStorage.getItem('purple_calendar_payments');
     return saved ? JSON.parse(saved) : [];
@@ -34,13 +39,22 @@ const App: React.FC = () => {
   const [selectedPayment, setSelectedPayment] = useState<Payment | undefined>(undefined);
   const [initialDateForAdd, setInitialDateForAdd] = useState<string | undefined>(undefined);
 
-  // Helper to get system-defined tasks for a specific date
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
   const getSystemPaymentsForDate = (date: Date): Payment[] => {
     const dayOfMonth = getDate(date);
     const dateStr = format(date, 'yyyy-MM-dd');
     const systemItems: Payment[] = [];
 
-    // Range 21-23: Envíos de cuentas de cobro
     if (dayOfMonth >= 21 && dayOfMonth <= 23) {
       systemItems.push({
         id: `sys-invoice-${dateStr}`,
@@ -52,7 +66,6 @@ const App: React.FC = () => {
       });
     }
 
-    // Range 23-28: Realizar pagos
     if (dayOfMonth >= 23 && dayOfMonth <= 28) {
       systemItems.push({
         id: `sys-payment-${dateStr}`,
@@ -66,14 +79,6 @@ const App: React.FC = () => {
 
     return systemItems;
   };
-
-  // Combine user payments with system payments
-  // We prioritize user-saved versions of system payments if they exist (based on description/date)
-  const allPayments = useMemo(() => {
-    // For the current view month, we can visualize them.
-    // However, to keep it simple, we only show system items in the UI logic.
-    return payments;
-  }, [payments]);
 
   useEffect(() => {
     localStorage.setItem('purple_calendar_payments', JSON.stringify(payments));
@@ -126,32 +131,41 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0a1f] text-purple-100 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0f0a1f] text-purple-100' : 'bg-[#f5f3ff] text-purple-900'}`}>
+      <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-8">
         
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-fuchsia-500">
-              Gestión de Pagos
+            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-fuchsia-600 dark:from-purple-400 dark:to-fuchsia-500">
+              Calendario Púrpura
             </h1>
-            <p className="text-purple-400 mt-1">Control de cobros y obligaciones mensuales</p>
+            <p className="text-purple-600 dark:text-purple-400 mt-1 font-medium">Gestión de finanzas personales</p>
           </div>
           
-          <button 
-            onClick={() => handleAddPayment()}
-            className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 transition-colors px-6 py-3 rounded-xl font-semibold shadow-lg shadow-purple-900/20"
-          >
-            <Plus size={20} />
-            Nuevo Registro
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={toggleTheme}
+              className="p-3 rounded-xl bg-purple-200 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 hover:scale-110 transition-transform"
+              title="Cambiar tema"
+            >
+              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
+            <button 
+              onClick={() => handleAddPayment()}
+              className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-500 text-white transition-colors px-6 py-3 rounded-xl font-bold shadow-lg shadow-purple-500/20"
+            >
+              <Plus size={20} />
+              <span className="hidden sm:inline">Nuevo Registro</span>
+            </button>
+          </div>
         </header>
 
         {/* Stats Summary */}
         <SummaryCards payments={payments} />
 
         {/* Main Content: Calendar */}
-        <div className="bg-purple-900/20 border border-purple-500/30 rounded-3xl p-6 backdrop-blur-sm">
+        <div className="bg-white/80 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/30 rounded-3xl p-6 backdrop-blur-md shadow-xl">
           <Calendar 
             currentDate={currentDate} 
             setCurrentDate={setCurrentDate}
@@ -159,29 +173,28 @@ const App: React.FC = () => {
             getSystemPaymentsForDate={getSystemPaymentsForDate}
             onDayClick={handleDayClick}
             onEditPayment={handleEditPayment}
+            theme={theme}
           />
         </div>
 
-        {/* Footer info */}
-        <footer className="text-center text-purple-500 text-sm pb-8">
-          Sistema de Control Financiero Personal &bull; {new Date().getFullYear()}
+        <footer className="text-center text-purple-400 dark:text-purple-600 text-sm pb-8 font-medium">
+          Control de Pagos &bull; {new Date().getFullYear()}
         </footer>
       </div>
 
       {/* Day Selection Modal */}
       {isSelectionOpen && selectedDay && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-[#1a142e] border border-purple-500/50 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-purple-800 flex justify-between items-center bg-purple-900/40">
-              <h3 className="text-lg font-bold">
-                Actividades - {format(selectedDay, 'd MMMM', { locale: es })}
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 dark:bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#1a142e] border border-purple-100 dark:border-purple-500/50 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-purple-100 dark:border-purple-800 flex justify-between items-center bg-purple-50 dark:bg-purple-900/40">
+              <h3 className="text-lg font-bold text-purple-900 dark:text-purple-100">
+                {format(selectedDay, 'd MMMM', { locale: es })}
               </h3>
-              <button onClick={() => setIsSelectionOpen(false)} className="p-2 hover:bg-purple-800 rounded-full">
+              <button onClick={() => setIsSelectionOpen(false)} className="p-2 hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full text-purple-500 transition-colors">
                 <X size={20} />
               </button>
             </div>
             <div className="p-6 space-y-3 max-h-[60vh] overflow-y-auto">
-              {/* Combine real payments and system items for display */}
               {[
                 ...payments.filter(p => isSameDay(parseISO(p.date), selectedDay)),
                 ...getSystemPaymentsForDate(selectedDay)
@@ -189,21 +202,21 @@ const App: React.FC = () => {
                 <button
                   key={p.id + i}
                   onClick={() => handleEditPayment(p)}
-                  className="w-full text-left p-4 bg-purple-800/20 hover:bg-purple-700/40 border border-purple-700/50 rounded-2xl transition-all flex items-center justify-between group"
+                  className="w-full text-left p-4 bg-purple-50 dark:bg-purple-800/20 hover:bg-purple-100 dark:hover:bg-purple-700/40 border border-purple-100 dark:border-purple-700/50 rounded-2xl transition-all flex items-center justify-between group"
                 >
                   <div className="flex-1 mr-4">
-                    <p className="font-bold text-purple-100 line-clamp-1">{p.recipient}</p>
-                    <p className="text-xs text-purple-400 line-clamp-2 italic">{p.description}</p>
+                    <p className="font-bold text-purple-900 dark:text-purple-100 line-clamp-1">{p.recipient}</p>
+                    <p className="text-xs text-purple-600 dark:text-purple-400 line-clamp-2 italic">{p.description}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <span className="font-mono text-sm text-fuchsia-300">${p.amount.toLocaleString()}</span>
-                    <Edit3 size={16} className="text-purple-500 group-hover:text-purple-300" />
+                    <span className="font-mono text-sm text-purple-700 dark:text-fuchsia-300 font-bold">${p.amount.toLocaleString()}</span>
+                    <Edit3 size={16} className="text-purple-400 group-hover:text-purple-600 dark:group-hover:text-purple-300" />
                   </div>
                 </button>
               ))}
               <button
                 onClick={() => handleAddPayment(format(selectedDay, 'yyyy-MM-dd'))}
-                className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-purple-700 hover:border-purple-500 hover:bg-purple-900/30 rounded-2xl transition-all text-purple-400 font-semibold"
+                className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-purple-300 dark:border-purple-700 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-2xl transition-all text-purple-500 dark:text-purple-400 font-semibold"
               >
                 <Plus size={18} />
                 Agregar Nuevo
@@ -213,7 +226,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Payment Modal (Combined Add/Edit) */}
+      {/* Payment Modal */}
       {isModalOpen && (
         <PaymentModal 
           isOpen={isModalOpen}
@@ -222,6 +235,7 @@ const App: React.FC = () => {
           onDelete={selectedPayment && !selectedPayment.id.startsWith('sys-') ? () => handleDeletePayment(selectedPayment.id) : undefined}
           payment={selectedPayment}
           initialDate={initialDateForAdd}
+          theme={theme}
         />
       )}
     </div>

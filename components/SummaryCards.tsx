@@ -23,45 +23,45 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ payments }) => {
       label: 'Sumatoria Total', 
       value: `$${stats.totalAmount.toLocaleString()}`, 
       icon: DollarSign, 
-      color: 'text-fuchsia-400',
-      bg: 'bg-fuchsia-500/10'
+      color: 'text-fuchsia-600 dark:text-fuchsia-400',
+      bg: 'bg-fuchsia-100 dark:bg-fuchsia-500/10'
     },
     { 
       label: 'Número de Pagos', 
       value: stats.count, 
       icon: List, 
-      color: 'text-purple-400',
-      bg: 'bg-purple-500/10'
+      color: 'text-purple-600 dark:text-purple-400',
+      bg: 'bg-purple-100 dark:bg-purple-500/10'
     },
     { 
       label: 'Pagos Realizados', 
       value: stats.completed, 
       icon: CheckCircle, 
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/10'
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bg: 'bg-emerald-100 dark:bg-emerald-500/10'
     },
     { 
       label: 'Pendientes', 
       value: stats.pending, 
       sub: `$${stats.pendingAmount.toLocaleString()}`,
       icon: Clock, 
-      color: 'text-amber-400',
-      bg: 'bg-amber-500/10'
+      color: 'text-amber-600 dark:text-amber-400',
+      bg: 'bg-amber-100 dark:bg-amber-500/10'
     },
   ];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card, i) => (
-        <div key={i} className="bg-purple-900/20 border border-purple-500/20 p-6 rounded-3xl backdrop-blur-sm hover:border-purple-500/40 transition-colors">
+        <div key={i} className="bg-white/80 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/20 p-6 rounded-3xl backdrop-blur-md shadow-lg shadow-purple-500/5 hover:border-purple-400 transition-all group">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-purple-400 text-sm font-medium">{card.label}</p>
-              <h3 className={`text-2xl font-bold mt-1 ${card.color}`}>{card.value}</h3>
-              {card.sub && <p className="text-xs text-purple-500 mt-1">{card.sub} en espera</p>}
+              <p className="text-purple-500 dark:text-purple-400 text-xs font-bold uppercase tracking-wider">{card.label}</p>
+              <h3 className={`text-2xl font-black mt-2 ${card.color}`}>{card.value}</h3>
+              {card.sub && <p className="text-[10px] text-purple-400 dark:text-purple-500 mt-1 font-bold">{card.sub} por cobrar/pagar</p>}
             </div>
-            <div className={`p-3 rounded-2xl ${card.bg}`}>
-              <card.icon size={24} className={card.color} />
+            <div className={`p-3 rounded-2xl ${card.bg} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
+              <card.icon size={22} className={card.color} />
             </div>
           </div>
         </div>
