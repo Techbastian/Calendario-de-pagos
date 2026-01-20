@@ -1,0 +1,5 @@
+{
+  "name": "Calendario de Pagos Púrpura",
+  "description": "Una aplicación de gestión financiera con temática púrpura para programar y seguir cuentas de cobro y pagos mensuales con visualización de calendario y resúmenes estadísticos.",
+  "requestFramePermissions": []
+}
