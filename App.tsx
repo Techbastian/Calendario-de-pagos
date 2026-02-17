@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, Edit3, ChevronLeft, ChevronRight, CheckCircle, Clock, DollarSign, List, X, Sun, Moon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, Edit3, X, Clock, CheckCircle, Send, CreditCard } from 'lucide-react';
 import { 
   format, 
   addMonths, 
@@ -13,21 +13,41 @@ import {
   isSameMonth, 
   isSameDay, 
   parseISO,
-  getDate
+  getDate,
+  getMonth
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Payment, PaymentStatus } from './types';
+import { Payment } from './types';
 import Calendar from './components/Calendar';
 import SummaryCards from './components/SummaryCards';
 import PaymentModal from './components/PaymentModal';
 
-const App: React.FC = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('theme');
-    return (saved as 'light' | 'dark') || 'dark';
-  });
+const MONTHLY_SCHEDULE: Record<number, { payments: number[], billing: number[] }> = {
+  0: { billing: [21, 22], payments: [23, 26, 27, 28] },      // Enero
+  1: { billing: [23, 24], payments: [25, 26, 27] },          // Febrero
+  2: { billing: [24, 25], payments: [26, 27, 28, 30] },      // Marzo
+  3: { billing: [24, 27], payments: [28, 29, 30] },          // Abril
+  4: { billing: [25, 26], payments: [27, 28, 29, 30] },      // Mayo
+  5: { billing: [22, 23], payments: [24, 25, 26] },          // Junio
+  6: { billing: [27, 28], payments: [29, 30, 31] },          // Julio
+  7: { billing: [24, 25], payments: [26, 27, 28] },          // Agosto
+  8: { billing: [24, 25], payments: [28, 29, 30] },          // Septiembre
+  9: { billing: [26, 27], payments: [28, 29, 30] },          // Octubre
+  10: { billing: [23, 24], payments: [25, 26, 27] },         // Noviembre
+  11: { billing: [14, 15], payments: [16, 17, 18] },         // Diciembre
+};
 
+const formatCOP = (amount: number) => {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0
+  }).format(amount);
+};
+
+const App: React.FC = () => {
+  // Initialize to 2026 to match the schedule context
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1));
   const [payments, setPayments] = useState<Payment[]>(() => {
     const saved = localStorage.getItem('purple_calendar_payments');
     return saved ? JSON.parse(saved) : [];
@@ -39,39 +59,32 @@ const App: React.FC = () => {
   const [selectedPayment, setSelectedPayment] = useState<Payment | undefined>(undefined);
   const [initialDateForAdd, setInitialDateForAdd] = useState<string | undefined>(undefined);
 
-  useEffect(() => {
-    localStorage.setItem('theme', theme);
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
-
-  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
-
   const getSystemPaymentsForDate = (date: Date): Payment[] => {
-    const dayOfMonth = getDate(date);
+    const month = getMonth(date);
+    const day = getDate(date);
     const dateStr = format(date, 'yyyy-MM-dd');
+    const schedule = MONTHLY_SCHEDULE[month];
     const systemItems: Payment[] = [];
 
-    if (dayOfMonth >= 21 && dayOfMonth <= 23) {
+    if (!schedule) return systemItems;
+
+    if (schedule.billing.includes(day)) {
       systemItems.push({
-        id: `sys-invoice-${dateStr}`,
+        id: `sys-billing-${dateStr}`,
         date: dateStr,
-        description: 'Envío de cuentas de cobro (Tarea Programada)',
-        recipient: 'Varios / Clientes',
+        description: 'Envío obligatorio de cuenta de cobro mensual.',
+        recipient: 'Facturación / Clientes',
         amount: 0,
         status: 'pending'
       });
     }
 
-    if (dayOfMonth >= 23 && dayOfMonth <= 28) {
+    if (schedule.payments.includes(day)) {
       systemItems.push({
         id: `sys-payment-${dateStr}`,
         date: dateStr,
-        description: 'Realizar pagos mensuales (Tarea Programada)',
-        recipient: 'Proveedores / Servicios',
+        description: 'Ejecución programada de pagos a proveedores.',
+        recipient: 'Administración / Pagos',
         amount: 0,
         status: 'pending'
       });
@@ -92,7 +105,14 @@ const App: React.FC = () => {
   };
 
   const handleEditPayment = (payment: Payment) => {
-    setSelectedPayment(payment);
+    if (payment.id.startsWith('sys-')) {
+      setSelectedPayment({
+        ...payment,
+        id: `converted-${Math.random().toString(36).substr(2, 9)}`
+      });
+    } else {
+      setSelectedPayment(payment);
+    }
     setIsModalOpen(true);
     setIsSelectionOpen(false);
   };
@@ -105,8 +125,15 @@ const App: React.FC = () => {
   };
 
   const handleSavePayment = (paymentData: Omit<Payment, 'id'>) => {
-    if (selectedPayment) {
-      setPayments(prev => prev.map(p => p.id === selectedPayment.id ? { ...paymentData, id: p.id } : p));
+    if (selectedPayment && !selectedPayment.id.startsWith('sys-')) {
+      setPayments(prev => {
+        const exists = prev.some(p => p.id === selectedPayment.id);
+        if (exists) {
+          return prev.map(p => p.id === selectedPayment.id ? { ...paymentData, id: p.id } : p);
+        } else {
+          return [...prev, { ...paymentData, id: selectedPayment.id }];
+        }
+      });
     } else {
       const newPayment: Payment = {
         ...paymentData,
@@ -130,112 +157,144 @@ const App: React.FC = () => {
     }
   };
 
+  // Determine if the selected payment is an existing saved payment in the state
+  const isExistingPayment = selectedPayment && payments.some(p => p.id === selectedPayment.id);
+
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0f0a1f] text-purple-100' : 'bg-[#f5f3ff] text-purple-900'}`}>
-      <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-8">
+    <div className={`min-h-screen transition-all duration-500 pb-12 overflow-x-hidden`}>
+      <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-10">
         
         {/* Header Section */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-fuchsia-600 dark:from-purple-400 dark:to-fuchsia-500">
-              Calendario Púrpura
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="animate-in slide-in-from-left duration-700">
+            <h1 className="text-5xl font-light bg-clip-text text-transparent bg-gradient-to-r from-purple-200 via-violet-200 to-indigo-200 drop-shadow-lg tracking-tight">
+              Cronograma de Pagos 2026
             </h1>
-            <p className="text-purple-600 dark:text-purple-400 mt-1 font-medium">Gestión de finanzas personales</p>
+            <p className="text-purple-300/80 mt-2 font-bold text-lg flex items-center gap-2">
+              <span className="w-8 h-[2px] bg-purple-500/50"></span>
+              Operaciones del Mes
+            </p>
           </div>
           
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={toggleTheme}
-              className="p-3 rounded-xl bg-purple-200 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 hover:scale-110 transition-transform"
-              title="Cambiar tema"
-            >
-              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
+          <div className="flex items-center gap-4 animate-in slide-in-from-right duration-700">
             <button 
               onClick={() => handleAddPayment()}
-              className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-500 text-white transition-colors px-6 py-3 rounded-xl font-bold shadow-lg shadow-purple-500/20"
+              className="flex items-center justify-center gap-3 bg-purple-600 hover:bg-purple-500 text-white transition-all px-8 py-4 rounded-2xl font-bold shadow-xl shadow-purple-900/40 hover:-translate-y-1"
             >
-              <Plus size={20} />
+              <Plus size={24} strokeWidth={3} />
               <span className="hidden sm:inline">Nuevo Registro</span>
             </button>
           </div>
         </header>
 
         {/* Stats Summary */}
-        <SummaryCards payments={payments} />
-
-        {/* Main Content: Calendar */}
-        <div className="bg-white/80 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/30 rounded-3xl p-6 backdrop-blur-md shadow-xl">
-          <Calendar 
-            currentDate={currentDate} 
-            setCurrentDate={setCurrentDate}
-            payments={payments}
-            getSystemPaymentsForDate={getSystemPaymentsForDate}
-            onDayClick={handleDayClick}
-            onEditPayment={handleEditPayment}
-            theme={theme}
-          />
+        <div className="animate-in fade-in zoom-in duration-700 delay-100">
+          <SummaryCards payments={payments} />
         </div>
 
-        <footer className="text-center text-purple-400 dark:text-purple-600 text-sm pb-8 font-medium">
-          Control de Pagos &bull; {new Date().getFullYear()}
+        {/* Calendar Card */}
+        <div className="animate-in fade-in slide-in-from-bottom duration-1000 delay-200">
+          <div className="calendar-card bg-purple-950/20 border border-purple-800/30 rounded-[2.5rem] p-4 md:p-8 shadow-2xl">
+            <Calendar 
+              currentDate={currentDate} 
+              setCurrentDate={setCurrentDate}
+              payments={payments}
+              getSystemPaymentsForDate={getSystemPaymentsForDate}
+              onDayClick={handleDayClick}
+              onEditPayment={handleEditPayment}
+            />
+          </div>
+        </div>
+
+        <footer className="text-center text-purple-100/20 text-[10px] font-bold tracking-[0.4em] uppercase py-12">
+          Diseño Escandinavo &bull; COP {new Date().getFullYear()}
         </footer>
       </div>
 
       {/* Day Selection Modal */}
       {isSelectionOpen && selectedDay && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 dark:bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#1a142e] border border-purple-100 dark:border-purple-500/50 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-purple-100 dark:border-purple-800 flex justify-between items-center bg-purple-50 dark:bg-purple-900/40">
-              <h3 className="text-lg font-bold text-purple-900 dark:text-purple-100">
-                {format(selectedDay, 'd MMMM', { locale: es })}
-              </h3>
-              <button onClick={() => setIsSelectionOpen(false)} className="p-2 hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full text-purple-500 transition-colors">
-                <X size={20} />
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className="bg-[#0a091a] border border-purple-800/50 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-8 border-b border-purple-900/50 flex justify-between items-center bg-purple-950/20">
+              <div>
+                <h3 className="text-2xl font-light text-purple-50 capitalize">
+                  {format(selectedDay, 'EEEE, d MMMM', { locale: es })}
+                </h3>
+                <p className="text-[10px] font-bold text-purple-500 mt-1 uppercase tracking-widest">Tareas del día</p>
+              </div>
+              <button onClick={() => setIsSelectionOpen(false)} className="p-3 hover:bg-white/10 rounded-full text-purple-400 transition-all">
+                <X size={24} />
               </button>
             </div>
-            <div className="p-6 space-y-3 max-h-[60vh] overflow-y-auto">
+            
+            <div className="p-8 space-y-4 max-h-[60vh] overflow-y-auto">
               {[
                 ...payments.filter(p => isSameDay(parseISO(p.date), selectedDay)),
                 ...getSystemPaymentsForDate(selectedDay)
-              ].map((p, i) => (
-                <button
-                  key={p.id + i}
-                  onClick={() => handleEditPayment(p)}
-                  className="w-full text-left p-4 bg-purple-50 dark:bg-purple-800/20 hover:bg-purple-100 dark:hover:bg-purple-700/40 border border-purple-100 dark:border-purple-700/50 rounded-2xl transition-all flex items-center justify-between group"
-                >
-                  <div className="flex-1 mr-4">
-                    <p className="font-bold text-purple-900 dark:text-purple-100 line-clamp-1">{p.recipient}</p>
-                    <p className="text-xs text-purple-600 dark:text-purple-400 line-clamp-2 italic">{p.description}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className="font-mono text-sm text-purple-700 dark:text-fuchsia-300 font-bold">${p.amount.toLocaleString()}</span>
-                    <Edit3 size={16} className="text-purple-400 group-hover:text-purple-600 dark:group-hover:text-purple-300" />
-                  </div>
-                </button>
-              ))}
+              ].map((p, i) => {
+                const isSystem = p.id.startsWith('sys-');
+                const isBilling = p.id.includes('billing');
+
+                return (
+                  <button
+                    key={p.id + i}
+                    onClick={() => handleEditPayment(p)}
+                    className={`w-full text-left p-6 group transition-all duration-300 rounded-3xl border flex items-center justify-between
+                      ${isSystem 
+                        ? (isBilling ? 'bg-blue-900/10 border-blue-500/30' : 'bg-fuchsia-900/10 border-fuchsia-500/30')
+                        : 'bg-purple-900/10 border-purple-500/30'
+                      }
+                      hover:scale-[1.02] hover:shadow-lg
+                    `}
+                  >
+                    <div className="flex-1 mr-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        {isSystem ? (
+                          isBilling ? <Send size={14} className="text-blue-500" /> : <CreditCard size={14} className="text-fuchsia-500" />
+                        ) : (
+                          p.status === 'completed' ? <CheckCircle size={14} className="text-emerald-500" /> : <Clock size={14} className="text-amber-500" />
+                        )}
+                        <span className={`text-[9px] font-bold uppercase tracking-tighter
+                          ${isSystem ? (isBilling ? 'text-blue-500' : 'text-fuchsia-500') : (p.status === 'completed' ? 'text-emerald-500' : 'text-amber-600')}
+                        `}>
+                          {isSystem ? (isBilling ? 'Sugerencia Cobro' : 'Sugerencia Pago') : (p.status === 'completed' ? 'Completado' : 'Por hacer')}
+                        </span>
+                      </div>
+                      <p className="font-bold text-purple-50 text-lg leading-tight">{p.recipient}</p>
+                      <p className="text-xs text-purple-400/60 mt-1 font-medium italic line-clamp-1">{p.description}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="font-mono text-lg text-purple-100 font-bold">
+                        {formatCOP(p.amount)}
+                      </span>
+                      <div className="p-2 bg-purple-950/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Edit3 size={16} className="text-purple-300" />
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+              
               <button
                 onClick={() => handleAddPayment(format(selectedDay, 'yyyy-MM-dd'))}
-                className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-purple-300 dark:border-purple-700 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-2xl transition-all text-purple-500 dark:text-purple-400 font-semibold"
+                className="w-full flex flex-col items-center justify-center gap-2 p-8 border-2 border-dashed border-purple-800/50 hover:border-purple-500 hover:bg-purple-900/20 rounded-3xl transition-all text-purple-800"
               >
-                <Plus size={18} />
-                Agregar Nuevo
+                <Plus size={32} strokeWidth={3} />
+                <span className="font-bold uppercase tracking-widest text-[10px]">Nueva Operación</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Payment Modal */}
       {isModalOpen && (
         <PaymentModal 
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSave={handleSavePayment}
-          onDelete={selectedPayment && !selectedPayment.id.startsWith('sys-') ? () => handleDeletePayment(selectedPayment.id) : undefined}
+          onDelete={isExistingPayment && selectedPayment ? () => handleDeletePayment(selectedPayment.id) : undefined}
           payment={selectedPayment}
           initialDate={initialDateForAdd}
-          theme={theme}
         />
       )}
     </div>

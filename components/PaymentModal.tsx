@@ -10,7 +10,6 @@ interface PaymentModalProps {
   onDelete?: () => void;
   payment?: Payment;
   initialDate?: string;
-  theme: 'light' | 'dark';
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ 
@@ -20,7 +19,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   onDelete, 
   payment,
   initialDate,
-  theme
 }) => {
   const [formData, setFormData] = useState<Omit<Payment, 'id'>>({
     date: initialDate || new Date().toISOString().split('T')[0],
@@ -55,29 +53,27 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     onSave(formData);
   };
 
-  const inputClasses = "w-full bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-700/50 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-purple-900 dark:text-purple-100 placeholder-purple-300 dark:placeholder-purple-600";
-  const labelClasses = "text-xs font-black uppercase tracking-widest text-purple-500 dark:text-purple-400 ml-1";
+  const inputClasses = "w-full bg-purple-900/10 border border-purple-800 focus:border-purple-500 rounded-2xl px-5 py-4 focus:outline-none focus:ring-1 focus:ring-purple-500/50 transition-all text-purple-50 placeholder-purple-700 font-bold shadow-inner";
+  const labelClasses = "text-[10px] font-bold uppercase tracking-[0.2em] text-purple-500/60 mb-2 block ml-2";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 dark:bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-[#1a142e] border border-purple-200 dark:border-purple-500/50 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-300">
+      <div className="bg-[#05040a] border border-purple-800/50 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         
-        {/* Header */}
-        <div className="p-6 border-b border-purple-100 dark:border-purple-800 flex justify-between items-center bg-purple-50 dark:bg-purple-900/40">
-          <h3 className="text-xl font-black flex items-center gap-3 text-purple-900 dark:text-purple-100">
-            {payment ? <Edit3 size={24} className="text-purple-600 dark:text-purple-400" /> : <Save size={24} className="text-purple-600 dark:text-purple-400" />}
-            {payment ? 'Editar Registro' : 'Nuevo Registro'}
+        <div className="p-8 border-b border-purple-900/50 flex justify-between items-center bg-purple-950/10">
+          <h3 className="text-2xl font-light flex items-center gap-3 text-purple-50 tracking-tight">
+            {payment ? <Edit3 size={24} className="text-indigo-400" /> : <Save size={24} className="text-indigo-400" />}
+            {payment ? 'Editar Registro COP' : 'Nueva Operación COP'}
           </h3>
-          <button onClick={onClose} className="p-2 hover:bg-purple-100 dark:hover:bg-purple-800 rounded-xl transition-colors text-purple-400">
-            <X size={20} />
+          <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-2xl transition-all text-purple-400">
+            <X size={24} />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-8 space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="space-y-2">
-              <label className={labelClasses}>Fecha</label>
+        <form onSubmit={handleSubmit} className="p-10 space-y-6 font-bold">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className={labelClasses}>Fecha Ejecución</label>
               <input 
                 type="date" 
                 value={formData.date}
@@ -85,72 +81,76 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 className={inputClasses}
               />
             </div>
-
-            <div className="space-y-2">
-              <label className={labelClasses}>Estado</label>
+            <div>
+              <label className={labelClasses}>Estado Actual</label>
               <select 
                 value={formData.status}
                 onChange={e => setFormData(prev => ({ ...prev, status: e.target.value as PaymentStatus }))}
-                className={inputClasses}
+                className={`${inputClasses} appearance-none cursor-pointer`}
               >
-                <option value="pending">Pendiente</option>
-                <option value="completed">Realizado</option>
+                <option value="pending" className="bg-[#05040a]">Pendiente</option>
+                <option value="completed" className="bg-[#05040a]">Realizado</option>
               </select>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className={labelClasses}>Beneficiario / Concepto</label>
+          <div>
+            <label className={labelClasses}>Beneficiario o Concepto</label>
             <input 
               type="text" 
-              placeholder="Ej: Pago Alquiler, Juan..."
+              placeholder="Ej: Nómina, Factura #44..."
               value={formData.recipient}
               onChange={e => setFormData(prev => ({ ...prev, recipient: e.target.value }))}
               className={inputClasses}
             />
           </div>
 
-          <div className="space-y-2">
-            <label className={labelClasses}>Monto ($)</label>
-            <input 
-              type="number" 
-              step="any"
-              placeholder="0.00"
-              value={formData.amount || ''}
-              onChange={e => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-              className={`${inputClasses} font-mono text-lg font-bold`}
-            />
+          <div>
+            <label className={labelClasses}>Monto Pesos (COP)</label>
+            <div className="relative">
+              <span className="absolute left-5 top-1/2 -translate-y-1/2 text-purple-400 font-bold">$</span>
+              <input 
+                type="number" 
+                placeholder="0"
+                value={formData.amount || ''}
+                onChange={e => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                className={`${inputClasses} pl-10 font-mono text-xl text-indigo-300`}
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label className={labelClasses}>Descripción</label>
+          <div>
+            <label className={labelClasses}>Observaciones</label>
             <textarea 
               rows={3}
-              placeholder="Notas adicionales..."
+              placeholder="Detalles de la transacción..."
               value={formData.description}
               onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              className={`${inputClasses} resize-none`}
+              className={`${inputClasses} resize-none font-bold`}
             />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-6">
-            {payment && onDelete && (
+          <div className="flex flex-col sm:flex-row gap-4 pt-6">
+            {onDelete && (
               <button 
                 type="button"
-                onClick={onDelete}
-                className="order-2 sm:order-1 flex-1 flex items-center justify-center gap-2 bg-red-50 dark:bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-200 dark:border-red-500/50 transition-all px-6 py-3 rounded-2xl font-bold"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onDelete();
+                }}
+                className="order-2 sm:order-1 flex-1 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-600 text-red-500 hover:text-white border border-red-900/50 transition-all px-8 py-4 rounded-2xl font-bold cursor-pointer"
               >
                 <Trash2 size={20} />
-                Eliminar
+                Borrar
               </button>
             )}
             <button 
               type="submit"
-              className="order-1 sm:order-2 flex-[2] flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-500 text-white transition-all px-6 py-3 rounded-2xl font-black shadow-xl shadow-purple-600/20"
+              className="order-1 sm:order-2 flex-[2] flex items-center justify-center gap-3 bg-purple-600 hover:bg-purple-500 text-white transition-all px-8 py-4 rounded-2xl font-bold shadow-xl shadow-purple-900/20"
             >
               <Save size={20} />
-              {payment ? 'Actualizar Datos' : 'Registrar Pago'}
+              {payment ? 'Guardar Cambios' : 'Confirmar Registro'}
             </button>
           </div>
         </form>
