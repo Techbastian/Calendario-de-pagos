@@ -16,3 +16,5 @@ export interface CalendarDay {
   isToday: boolean;
   payments: Payment[];
 }
+
+export type Theme = 'dark' | 'light';

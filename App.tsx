@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit3, X, Clock, CheckCircle, Send, CreditCard } from 'lucide-react';
+import { Plus, Trash2, Edit3, X, Clock, CheckCircle, Send, CreditCard, Sun, Moon } from 'lucide-react';
 import { 
   format, 
   addMonths, 
@@ -17,10 +17,11 @@ import {
   getMonth
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Payment } from './types';
+import { Payment, Theme } from './types';
 import Calendar from './components/Calendar';
 import SummaryCards from './components/SummaryCards';
 import PaymentModal from './components/PaymentModal';
+import AlertModal, { AlertType } from './components/AlertModal';
 
 const MONTHLY_SCHEDULE: Record<number, { payments: number[], billing: number[] }> = {
   // Reglas 2026: Días hábiles (L-V), Última semana, Max 3 días pago, Evitar Festivos.
@@ -53,12 +54,28 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('purple_calendar_payments');
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [theme, setTheme] = useState<Theme>(() => {
+    const saved = localStorage.getItem('purple_calendar_theme');
+    return (saved as Theme) || 'dark';
+  });
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSelectionOpen, setIsSelectionOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<Payment | undefined>(undefined);
   const [initialDateForAdd, setInitialDateForAdd] = useState<string | undefined>(undefined);
+
+  // Alert State
+  const [alert, setAlert] = useState<{ show: boolean; type: AlertType; message: string }>({
+    show: false,
+    type: 'success',
+    message: ''
+  });
+
+  const showAlert = (type: AlertType, message: string) => {
+    setAlert({ show: true, type, message });
+  };
 
   const getSystemPaymentsForDate = (date: Date): Payment[] => {
     const month = getMonth(date);
@@ -98,6 +115,14 @@ const App: React.FC = () => {
     localStorage.setItem('purple_calendar_payments', JSON.stringify(payments));
   }, [payments]);
 
+  useEffect(() => {
+    localStorage.setItem('purple_calendar_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
   const handleAddPayment = (date?: string) => {
     setSelectedPayment(undefined);
     setInitialDateForAdd(date || format(new Date(), 'yyyy-MM-dd'));
@@ -122,11 +147,15 @@ const App: React.FC = () => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este registro?')) {
       setPayments(prev => prev.filter(p => p.id !== id));
       setIsModalOpen(false);
+      showAlert('delete', 'El evento ha sido eliminado correctamente.');
     }
   };
 
   const handleSavePayment = (paymentData: Omit<Payment, 'id'>) => {
+    let type: AlertType = 'success';
     if (selectedPayment && !selectedPayment.id.startsWith('sys-')) {
+      // Editing existing
+      type = 'edit';
       setPayments(prev => {
         const exists = prev.some(p => p.id === selectedPayment.id);
         if (exists) {
@@ -135,12 +164,15 @@ const App: React.FC = () => {
           return [...prev, { ...paymentData, id: selectedPayment.id }];
         }
       });
+      showAlert('edit', 'Los cambios se han guardado exitosamente.');
     } else {
+      // Creating new
       const newPayment: Payment = {
         ...paymentData,
         id: Math.random().toString(36).substr(2, 9)
       };
       setPayments(prev => [...prev, newPayment]);
+      showAlert('success', 'Nueva operación registrada correctamente.');
     }
     setIsModalOpen(false);
   };
@@ -161,23 +193,37 @@ const App: React.FC = () => {
   // Determine if the selected payment is an existing saved payment in the state
   const isExistingPayment = selectedPayment && payments.some(p => p.id === selectedPayment.id);
 
+  const isDark = theme === 'dark';
+
+  // Background styles
+  const mainBgClass = isDark 
+    ? "bg-[#05040a] text-[#f5f3ff] bg-[radial-gradient(at_0%_0%,#1e1b4b_0px,transparent_35%),radial-gradient(at_100%_0%,#2e1065_0px,transparent_35%),radial-gradient(at_50%_100%,#1a0b2e_0px,transparent_50%),radial-gradient(at_80%_20%,#0a091a_0px,transparent_40%)]"
+    : "bg-slate-50 text-slate-900 bg-[radial-gradient(at_0%_0%,#f3e8ff_0px,transparent_50%),radial-gradient(at_100%_100%,#e0e7ff_0px,transparent_50%)]";
+
   return (
-    <div className={`min-h-screen transition-all duration-500 pb-12 overflow-x-hidden`}>
+    <div className={`min-h-screen transition-all duration-700 pb-12 overflow-x-hidden ${mainBgClass}`}>
       <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-10">
         
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="animate-in slide-in-from-left duration-700">
-            <h1 className="text-5xl font-light bg-clip-text text-transparent bg-gradient-to-r from-purple-200 via-violet-200 to-indigo-200 drop-shadow-lg tracking-tight">
+            <h1 className={`text-5xl font-light bg-clip-text text-transparent drop-shadow-lg tracking-tight ${isDark ? 'bg-gradient-to-r from-purple-200 via-violet-200 to-indigo-200' : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600'}`}>
               Cronograma de Pagos 2026
             </h1>
-            <p className="text-purple-300/80 mt-2 font-bold text-lg flex items-center gap-2">
+            <p className={`mt-2 font-bold text-lg flex items-center gap-2 ${isDark ? 'text-purple-300/80' : 'text-purple-600/70'}`}>
               <span className="w-8 h-[2px] bg-purple-500/50"></span>
               Operaciones del Mes
             </p>
           </div>
           
           <div className="flex items-center gap-4 animate-in slide-in-from-right duration-700">
+            <button 
+              onClick={toggleTheme}
+              className={`p-4 rounded-2xl transition-all shadow-xl hover:-translate-y-1 ${isDark ? 'bg-purple-900/20 text-yellow-300 hover:bg-purple-800/30' : 'bg-white text-purple-600 shadow-purple-100 hover:bg-purple-50'}`}
+              title="Cambiar Tema"
+            >
+              {isDark ? <Sun size={24} /> : <Moon size={24} />}
+            </button>
             <button 
               onClick={() => handleAddPayment()}
               className="flex items-center justify-center gap-3 bg-purple-600 hover:bg-purple-500 text-white transition-all px-8 py-4 rounded-2xl font-bold shadow-xl shadow-purple-900/40 hover:-translate-y-1"
@@ -190,12 +236,12 @@ const App: React.FC = () => {
 
         {/* Stats Summary */}
         <div className="animate-in fade-in zoom-in duration-700 delay-100">
-          <SummaryCards payments={payments} />
+          <SummaryCards payments={payments} theme={theme} />
         </div>
 
         {/* Calendar Card */}
         <div className="animate-in fade-in slide-in-from-bottom duration-1000 delay-200">
-          <div className="calendar-card bg-purple-950/20 border border-purple-800/30 rounded-[2.5rem] p-4 md:p-8 shadow-2xl">
+          <div className={`calendar-card border rounded-[2.5rem] p-4 md:p-8 shadow-2xl transition-colors duration-500 ${isDark ? 'bg-purple-950/20 border-purple-800/30' : 'bg-white/70 border-white/50 shadow-purple-100'}`}>
             <Calendar 
               currentDate={currentDate} 
               setCurrentDate={setCurrentDate}
@@ -203,27 +249,28 @@ const App: React.FC = () => {
               getSystemPaymentsForDate={getSystemPaymentsForDate}
               onDayClick={handleDayClick}
               onEditPayment={handleEditPayment}
+              theme={theme}
             />
           </div>
         </div>
 
-        <footer className="text-center text-purple-100/20 text-[10px] font-bold tracking-[0.4em] uppercase py-12">
+        <footer className={`text-center text-[10px] font-bold tracking-[0.4em] uppercase py-12 ${isDark ? 'text-purple-100/20' : 'text-purple-900/20'}`}>
           Diseño Escandinavo &bull; COP {new Date().getFullYear()}
         </footer>
       </div>
 
       {/* Day Selection Modal */}
       {isSelectionOpen && selectedDay && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-300">
-          <div className="bg-[#0a091a] border border-purple-800/50 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-8 border-b border-purple-900/50 flex justify-between items-center bg-purple-950/20">
+        <div className={`fixed inset-0 z-[60] flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-300 ${isDark ? 'bg-black/80' : 'bg-white/40'}`}>
+          <div className={`border w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 ${isDark ? 'bg-[#0a091a] border-purple-800/50' : 'bg-white border-purple-100'}`}>
+            <div className={`p-8 border-b flex justify-between items-center ${isDark ? 'border-purple-900/50 bg-purple-950/20' : 'border-purple-100 bg-purple-50'}`}>
               <div>
-                <h3 className="text-2xl font-light text-purple-50 capitalize">
+                <h3 className={`text-2xl font-light capitalize ${isDark ? 'text-purple-50' : 'text-purple-900'}`}>
                   {format(selectedDay, 'EEEE, d MMMM', { locale: es })}
                 </h3>
                 <p className="text-[10px] font-bold text-purple-500 mt-1 uppercase tracking-widest">Tareas del día</p>
               </div>
-              <button onClick={() => setIsSelectionOpen(false)} className="p-3 hover:bg-white/10 rounded-full text-purple-400 transition-all">
+              <button onClick={() => setIsSelectionOpen(false)} className={`p-3 rounded-full transition-all ${isDark ? 'hover:bg-white/10 text-purple-400' : 'hover:bg-purple-100 text-purple-600'}`}>
                 <X size={24} />
               </button>
             </div>
@@ -242,8 +289,10 @@ const App: React.FC = () => {
                     onClick={() => handleEditPayment(p)}
                     className={`w-full text-left p-6 group transition-all duration-300 rounded-3xl border flex items-center justify-between
                       ${isSystem 
-                        ? (isBilling ? 'bg-blue-900/10 border-blue-500/30' : 'bg-fuchsia-900/10 border-fuchsia-500/30')
-                        : 'bg-purple-900/10 border-purple-500/30'
+                        ? (isBilling 
+                            ? (isDark ? 'bg-blue-900/10 border-blue-500/30' : 'bg-blue-50 border-blue-100') 
+                            : (isDark ? 'bg-fuchsia-900/10 border-fuchsia-500/30' : 'bg-fuchsia-50 border-fuchsia-100'))
+                        : (isDark ? 'bg-purple-900/10 border-purple-500/30' : 'bg-purple-50 border-purple-100')
                       }
                       hover:scale-[1.02] hover:shadow-lg
                     `}
@@ -261,15 +310,15 @@ const App: React.FC = () => {
                           {isSystem ? (isBilling ? 'Recepción Facturas' : 'Sugerencia Pago') : (p.status === 'completed' ? 'Completado' : 'Por hacer')}
                         </span>
                       </div>
-                      <p className="font-bold text-purple-50 text-lg leading-tight">{p.recipient}</p>
-                      <p className="text-xs text-purple-400/60 mt-1 font-medium italic line-clamp-1">{p.description}</p>
+                      <p className={`font-bold text-lg leading-tight ${isDark ? 'text-purple-50' : 'text-purple-900'}`}>{p.recipient}</p>
+                      <p className={`text-xs mt-1 font-medium italic line-clamp-1 ${isDark ? 'text-purple-400/60' : 'text-purple-400'}`}>{p.description}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <span className="font-mono text-lg text-purple-100 font-bold">
+                      <span className={`font-mono text-lg font-bold ${isDark ? 'text-purple-100' : 'text-purple-800'}`}>
                         {formatCOP(p.amount)}
                       </span>
-                      <div className="p-2 bg-purple-950/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Edit3 size={16} className="text-purple-300" />
+                      <div className={`p-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'bg-purple-950/50' : 'bg-purple-200/50'}`}>
+                        <Edit3 size={16} className={isDark ? "text-purple-300" : "text-purple-600"} />
                       </div>
                     </div>
                   </button>
@@ -278,7 +327,7 @@ const App: React.FC = () => {
               
               <button
                 onClick={() => handleAddPayment(format(selectedDay, 'yyyy-MM-dd'))}
-                className="w-full flex flex-col items-center justify-center gap-2 p-8 border-2 border-dashed border-purple-800/50 hover:border-purple-500 hover:bg-purple-900/20 rounded-3xl transition-all text-purple-800"
+                className={`w-full flex flex-col items-center justify-center gap-2 p-8 border-2 border-dashed rounded-3xl transition-all ${isDark ? 'border-purple-800/50 hover:border-purple-500 hover:bg-purple-900/20 text-purple-800' : 'border-purple-200 hover:border-purple-400 hover:bg-purple-50 text-purple-400'}`}
               >
                 <Plus size={32} strokeWidth={3} />
                 <span className="font-bold uppercase tracking-widest text-[10px]">Nueva Operación</span>
@@ -296,8 +345,18 @@ const App: React.FC = () => {
           onDelete={isExistingPayment && selectedPayment ? () => handleDeletePayment(selectedPayment.id) : undefined}
           payment={selectedPayment}
           initialDate={initialDateForAdd}
+          theme={theme}
         />
       )}
+
+      {/* Custom Alert Modal */}
+      <AlertModal 
+        isOpen={alert.show}
+        type={alert.type}
+        message={alert.message}
+        onClose={() => setAlert(prev => ({ ...prev, show: false }))}
+        theme={theme}
+      />
     </div>
   );
 };

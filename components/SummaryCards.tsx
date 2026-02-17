@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { DollarSign, List, CheckCircle, Clock } from 'lucide-react';
-import { Payment } from '../types';
+import { Payment, Theme } from '../types';
 
 interface SummaryCardsProps {
   payments: Payment[];
+  theme: Theme;
 }
 
 const formatCOP = (amount: number) => {
@@ -14,7 +16,9 @@ const formatCOP = (amount: number) => {
   }).format(amount);
 };
 
-const SummaryCards: React.FC<SummaryCardsProps> = ({ payments }) => {
+const SummaryCards: React.FC<SummaryCardsProps> = ({ payments, theme }) => {
+  const isDark = theme === 'dark';
+
   const stats = React.useMemo(() => {
     const totalAmount = payments.reduce((acc, p) => acc + p.amount, 0);
     const count = payments.length;
@@ -25,49 +29,54 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ payments }) => {
     return { totalAmount, count, completed, pending, pendingAmount };
   }, [payments]);
 
+  // Dynamic base classes based on theme
+  const cardBaseClass = isDark 
+    ? "bg-purple-900/5 hover:bg-purple-900/10 backdrop-blur-xl" 
+    : "bg-white/80 hover:bg-white shadow-lg hover:shadow-purple-500/10 backdrop-blur-xl";
+
   const cards = [
     { 
       label: 'Registrado Total', 
       value: formatCOP(stats.totalAmount), 
       icon: DollarSign, 
-      color: 'text-indigo-300',
-      bg: 'bg-indigo-950/20',
-      border: 'border-indigo-500/20'
+      color: isDark ? 'text-indigo-300' : 'text-indigo-600',
+      bg: isDark ? 'bg-indigo-950/20' : 'bg-indigo-50',
+      border: isDark ? 'border-indigo-500/20' : 'border-indigo-100'
     },
     { 
       label: 'Asignaciones', 
       value: stats.count, 
       icon: List, 
-      color: 'text-purple-300',
-      bg: 'bg-purple-950/20',
-      border: 'border-purple-500/20'
+      color: isDark ? 'text-purple-300' : 'text-purple-600',
+      bg: isDark ? 'bg-purple-950/20' : 'bg-purple-50',
+      border: isDark ? 'border-purple-500/20' : 'border-purple-100'
     },
     { 
       label: 'Pagos Finalizados', 
       value: stats.completed, 
       icon: CheckCircle, 
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-950/20',
-      border: 'border-emerald-500/20'
+      color: isDark ? 'text-emerald-400' : 'text-emerald-600',
+      bg: isDark ? 'bg-emerald-950/20' : 'bg-emerald-50',
+      border: isDark ? 'border-emerald-500/20' : 'border-emerald-100'
     },
     { 
       label: 'Pendiente COP', 
       value: formatCOP(stats.pendingAmount), 
       sub: `${stats.pending} ítems`,
       icon: Clock, 
-      color: 'text-amber-400',
-      bg: 'bg-amber-950/20',
-      border: 'border-amber-200/20'
+      color: isDark ? 'text-amber-400' : 'text-amber-600',
+      bg: isDark ? 'bg-amber-950/20' : 'bg-amber-50',
+      border: isDark ? 'border-amber-200/20' : 'border-amber-100'
     },
   ];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       {cards.map((card, i) => (
-        <div key={i} className={`bg-purple-900/5 border-2 ${card.border} p-8 rounded-[2.2rem] backdrop-blur-xl hover:bg-purple-900/10 transition-all duration-500 group shadow-lg hover:shadow-xl`}>
+        <div key={i} className={`${cardBaseClass} border-2 ${card.border} p-8 rounded-[2.2rem] transition-all duration-500 group`}>
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-purple-500/70 text-[10px] font-bold uppercase tracking-[0.2em] leading-none mb-4">{card.label}</p>
+              <p className={`${isDark ? 'text-purple-500/70' : 'text-purple-900/40'} text-[10px] font-bold uppercase tracking-[0.2em] leading-none mb-4`}>{card.label}</p>
               <h3 className={`text-2xl font-bold ${card.color} tracking-tight break-words`}>{card.value}</h3>
               {card.sub && (
                 <div className="mt-3 text-[10px] text-purple-400/50 font-bold uppercase tracking-widest">{card.sub}</div>

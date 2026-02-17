@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Save, Trash2, Edit3 } from 'lucide-react';
-import { Payment, PaymentStatus } from '../types';
+import { Payment, PaymentStatus, Theme } from '../types';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -10,6 +10,7 @@ interface PaymentModalProps {
   onDelete?: () => void;
   payment?: Payment;
   initialDate?: string;
+  theme: Theme;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ 
@@ -19,6 +20,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   onDelete, 
   payment,
   initialDate,
+  theme
 }) => {
   const [formData, setFormData] = useState<Omit<Payment, 'id'>>({
     date: initialDate || new Date().toISOString().split('T')[0],
@@ -27,6 +29,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     amount: 0,
     status: 'pending' as PaymentStatus
   });
+
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     if (payment) {
@@ -53,19 +57,27 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     onSave(formData);
   };
 
-  const inputClasses = "w-full bg-purple-900/10 border border-purple-800 focus:border-purple-500 rounded-2xl px-5 py-4 focus:outline-none focus:ring-1 focus:ring-purple-500/50 transition-all text-purple-50 placeholder-purple-700 font-bold shadow-inner";
+  // Dynamic Styles
+  const modalBg = isDark ? 'bg-[#05040a] border-purple-800/50' : 'bg-white border-purple-100';
+  const headerBg = isDark ? 'bg-purple-950/10 border-purple-900/50' : 'bg-purple-50 border-purple-100';
+  const textMain = isDark ? 'text-purple-50' : 'text-purple-900';
+  const inputBg = isDark 
+    ? "bg-purple-900/10 border-purple-800 text-purple-50 placeholder-purple-700" 
+    : "bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400";
+    
+  const inputClasses = `w-full border focus:border-purple-500 rounded-2xl px-5 py-4 focus:outline-none focus:ring-1 focus:ring-purple-500/50 transition-all font-bold shadow-inner ${inputBg}`;
   const labelClasses = "text-[10px] font-bold uppercase tracking-[0.2em] text-purple-500/60 mb-2 block ml-2";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl animate-in fade-in duration-300">
-      <div className="bg-[#05040a] border border-purple-800/50 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-2xl animate-in fade-in duration-300 ${isDark ? 'bg-black/95' : 'bg-white/60'}`}>
+      <div className={`${modalBg} border w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200`}>
         
-        <div className="p-8 border-b border-purple-900/50 flex justify-between items-center bg-purple-950/10">
-          <h3 className="text-2xl font-light flex items-center gap-3 text-purple-50 tracking-tight">
+        <div className={`p-8 border-b flex justify-between items-center ${headerBg}`}>
+          <h3 className={`text-2xl font-light flex items-center gap-3 tracking-tight ${textMain}`}>
             {payment ? <Edit3 size={24} className="text-indigo-400" /> : <Save size={24} className="text-indigo-400" />}
             {payment ? 'Editar Registro COP' : 'Nueva Operación COP'}
           </h3>
-          <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-2xl transition-all text-purple-400">
+          <button onClick={onClose} className="p-3 hover:bg-black/5 rounded-2xl transition-all text-purple-400">
             <X size={24} />
           </button>
         </div>
@@ -88,8 +100,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 onChange={e => setFormData(prev => ({ ...prev, status: e.target.value as PaymentStatus }))}
                 className={`${inputClasses} appearance-none cursor-pointer`}
               >
-                <option value="pending" className="bg-[#05040a]">Pendiente</option>
-                <option value="completed" className="bg-[#05040a]">Realizado</option>
+                <option value="pending" className={isDark ? "bg-[#05040a]" : "bg-white"}>Pendiente</option>
+                <option value="completed" className={isDark ? "bg-[#05040a]" : "bg-white"}>Realizado</option>
               </select>
             </div>
           </div>
@@ -114,7 +126,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 placeholder="0"
                 value={formData.amount || ''}
                 onChange={e => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                className={`${inputClasses} pl-10 font-mono text-xl text-indigo-300`}
+                className={`${inputClasses} pl-10 font-mono text-xl text-indigo-500`}
               />
             </div>
           </div>
@@ -139,7 +151,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   e.preventDefault();
                   onDelete();
                 }}
-                className="order-2 sm:order-1 flex-1 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-600 text-red-500 hover:text-white border border-red-900/50 transition-all px-8 py-4 rounded-2xl font-bold cursor-pointer"
+                className="order-2 sm:order-1 flex-1 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/20 transition-all px-8 py-4 rounded-2xl font-bold cursor-pointer"
               >
                 <Trash2 size={20} />
                 Borrar
