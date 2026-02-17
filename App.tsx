@@ -190,7 +190,7 @@ const App: React.FC = () => {
     }
   };
 
-  // Determine if the selected payment is an existing saved payment in the state
+  // Check if selectedPayment exists in the payments array by ID comparison
   const isExistingPayment = selectedPayment && payments.some(p => p.id === selectedPayment.id);
 
   const isDark = theme === 'dark';

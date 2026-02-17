@@ -57,6 +57,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     onSave(formData);
   };
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete();
+    }
+  };
+
   // Dynamic Styles
   const modalBg = isDark ? 'bg-[#05040a] border-purple-800/50' : 'bg-white border-purple-100';
   const headerBg = isDark ? 'bg-purple-950/10 border-purple-900/50' : 'bg-purple-50 border-purple-100';
@@ -146,11 +154,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             {onDelete && (
               <button 
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onDelete();
-                }}
+                onClick={handleDelete}
                 className="order-2 sm:order-1 flex-1 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/20 transition-all px-8 py-4 rounded-2xl font-bold cursor-pointer"
               >
                 <Trash2 size={20} />
