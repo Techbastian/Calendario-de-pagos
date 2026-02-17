@@ -23,18 +23,19 @@ import SummaryCards from './components/SummaryCards';
 import PaymentModal from './components/PaymentModal';
 
 const MONTHLY_SCHEDULE: Record<number, { payments: number[], billing: number[] }> = {
-  0: { billing: [21, 22], payments: [23, 26, 27, 28] },      // Enero
-  1: { billing: [23, 24], payments: [25, 26, 27] },          // Febrero
-  2: { billing: [24, 25], payments: [26, 27, 28, 30] },      // Marzo
-  3: { billing: [24, 27], payments: [28, 29, 30] },          // Abril
-  4: { billing: [25, 26], payments: [27, 28, 29, 30] },      // Mayo
-  5: { billing: [22, 23], payments: [24, 25, 26] },          // Junio
-  6: { billing: [27, 28], payments: [29, 30, 31] },          // Julio
-  7: { billing: [24, 25], payments: [26, 27, 28] },          // Agosto
-  8: { billing: [24, 25], payments: [28, 29, 30] },          // Septiembre
-  9: { billing: [26, 27], payments: [28, 29, 30] },          // Octubre
-  10: { billing: [23, 24], payments: [25, 26, 27] },         // Noviembre
-  11: { billing: [14, 15], payments: [16, 17, 18] },         // Diciembre
+  // Reglas 2026: Días hábiles (L-V), Última semana, Max 3 días pago, Evitar Festivos.
+  0: { billing: [26, 27], payments: [28, 29, 30] },      // Enero: L-V (Semana completa fin de mes)
+  1: { billing: [23, 24], payments: [25, 26, 27] },      // Febrero: L-V (Semana completa fin de mes)
+  2: { billing: [24, 25], payments: [26, 27, 30] },      // Marzo: Evita festivo Lun 23. Pagos Jue, Vie, Lun 30.
+  3: { billing: [24, 27], payments: [28, 29, 30] },      // Abril: Vie 24, Lun 27. Pagos Mar-Jue (fin de mes 30).
+  4: { billing: [25, 26], payments: [27, 28, 29] },      // Mayo: L-V (Semana 25-29)
+  5: { billing: [22, 23], payments: [24, 25, 26] },      // Junio: Adelantado para evitar festivo Lun 29 y cierre.
+  6: { billing: [27, 28], payments: [29, 30, 31] },      // Julio: L-V (Semana 27-31)
+  7: { billing: [25, 26], payments: [27, 28, 31] },      // Agosto: Evita fin de semana. Pagos Jue, Vie, Lun 31.
+  8: { billing: [24, 25], payments: [28, 29, 30] },      // Septiembre: Jue-Vie Recepción. Lun-Mié Pagos.
+  9: { billing: [26, 27], payments: [28, 29, 30] },      // Octubre: L-V (Semana 26-30)
+  10: { billing: [24, 25], payments: [26, 27, 30] },     // Noviembre: Evita festivo Lun 16. Fin de mes Lun 30.
+  11: { billing: [14, 15], payments: [16, 17, 18] },     // Diciembre: Adelantado por cierre anual (L-V).
 };
 
 const formatCOP = (amount: number) => {
@@ -72,8 +73,8 @@ const App: React.FC = () => {
       systemItems.push({
         id: `sys-billing-${dateStr}`,
         date: dateStr,
-        description: 'Envío obligatorio de cuenta de cobro mensual.',
-        recipient: 'Facturación / Clientes',
+        description: 'Recepción obligatoria: Cuentas de cobro y Facturas.',
+        recipient: 'Recepción Facturas',
         amount: 0,
         status: 'pending'
       });
@@ -257,7 +258,7 @@ const App: React.FC = () => {
                         <span className={`text-[9px] font-bold uppercase tracking-tighter
                           ${isSystem ? (isBilling ? 'text-blue-500' : 'text-fuchsia-500') : (p.status === 'completed' ? 'text-emerald-500' : 'text-amber-600')}
                         `}>
-                          {isSystem ? (isBilling ? 'Sugerencia Cobro' : 'Sugerencia Pago') : (p.status === 'completed' ? 'Completado' : 'Por hacer')}
+                          {isSystem ? (isBilling ? 'Recepción Facturas' : 'Sugerencia Pago') : (p.status === 'completed' ? 'Completado' : 'Por hacer')}
                         </span>
                       </div>
                       <p className="font-bold text-purple-50 text-lg leading-tight">{p.recipient}</p>

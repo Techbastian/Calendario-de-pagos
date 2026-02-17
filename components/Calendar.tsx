@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   format, 
@@ -82,7 +83,7 @@ const Calendar: React.FC<CalendarProps> = ({
       <div className="flex flex-wrap gap-4 mb-8">
         <div className="flex items-center gap-3 px-5 py-2.5 bg-blue-950/20 rounded-2xl border border-blue-500/20 shadow-sm">
           <Send size={14} className="text-blue-500" />
-          <span className="text-blue-200 text-[9px] font-bold uppercase tracking-widest">Cobros Mensuales</span>
+          <span className="text-blue-200 text-[9px] font-bold uppercase tracking-widest">Recepción Facturas</span>
         </div>
         <div className="flex items-center gap-3 px-5 py-2.5 bg-fuchsia-950/20 rounded-2xl border border-fuchsia-500/20 shadow-sm">
           <Zap size={14} className="text-fuchsia-500" />
