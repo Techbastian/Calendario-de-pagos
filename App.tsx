@@ -39,6 +39,23 @@ const MONTHLY_SCHEDULE: Record<number, { payments: number[], billing: number[] }
   11: { billing: [14, 15], payments: [16, 17, 18] },     // Diciembre: Adelantado por cierre anual (L-V).
 };
 
+const TAX_SCHEDULE = [
+  { name: 'RETENCION EN LA FUENTE', color: 'sky', dates: [
+    { m: 1, d: 16 }, { m: 2, d: 16 }, { m: 3, d: 17 }, { m: 4, d: 19 }, 
+    { m: 5, d: 17 }, { m: 6, d: 15 }, { m: 7, d: 19 }, { m: 8, d: 15 }, 
+    { m: 9, d: 16 }, { m: 10, d: 18 }, { m: 11, d: 16 }
+  ]},
+  { name: 'RETENCION DE ICA BIMESTRAL', color: 'orange', dates: [
+    { m: 2, d: 20 }, { m: 4, d: 22 }, { m: 6, d: 17 }, { m: 8, d: 18 }, { m: 10, d: 20 }
+  ]},
+  { name: 'INFORMACION EXOGENA SHD', color: 'yellow', dates: [{ m: 6, d: 1 }]},
+  { name: 'DECLARACION DE RENTA', color: 'lime', dates: [{ m: 4, d: 19 }]},
+  { name: 'IVA CUATRIMESTRAL', color: 'yellow', dates: [{ m: 4, d: 19 }, { m: 8, d: 15 }]},
+  { name: 'INFORMACION EXOGENA DIAN', color: 'green', dates: [{ m: 4, d: 1 }]},
+  { name: 'DECLARACION ICA ANUAL', color: 'purple', dates: [{ m: 1, d: 26 }]},
+  { name: 'CAMARA DE COMERCIO', color: 'yellow', dates: [{ m: 2, d: 31 }]}
+];
+
 const formatCOP = (amount: number) => {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -84,25 +101,51 @@ const App: React.FC = () => {
     const schedule = MONTHLY_SCHEDULE[month];
     const systemItems: Payment[] = [];
 
-    if (!schedule) return systemItems;
+    if (schedule) {
+      if (schedule.billing.includes(day)) {
+        systemItems.push({
+          id: `sys-billing-${dateStr}`,
+          date: dateStr,
+          description: 'Recepción obligatoria: Cuentas de cobro y Facturas.',
+          recipient: 'Recepción Facturas',
+          amount: 0,
+          status: 'pending'
+        });
+      }
 
-    if (schedule.billing.includes(day)) {
-      systemItems.push({
-        id: `sys-billing-${dateStr}`,
-        date: dateStr,
-        description: 'Recepción obligatoria: Cuentas de cobro y Facturas.',
-        recipient: 'Recepción Facturas',
-        amount: 0,
-        status: 'pending'
-      });
+      if (schedule.payments.includes(day)) {
+        systemItems.push({
+          id: `sys-payment-${dateStr}`,
+          date: dateStr,
+          description: 'Ejecución programada de pagos a proveedores.',
+          recipient: 'Administración / Pagos',
+          amount: 0,
+          status: 'pending'
+        });
+      }
     }
 
-    if (schedule.payments.includes(day)) {
+    // Tax Obligations
+    TAX_SCHEDULE.forEach(tax => {
+      if (tax.dates.some(d => d.m === month && d.d === day)) {
+        systemItems.push({
+          id: `sys-tax-${tax.color}-${dateStr}-${tax.name.replace(/\s+/g, '')}`,
+          date: dateStr,
+          description: 'Obligación Tributaria / Legal',
+          recipient: tax.name,
+          amount: 0,
+          status: 'pending'
+        });
+      }
+    });
+
+    // Monthly Model Delivery (5th of every month)
+    if (day === 5) {
       systemItems.push({
-        id: `sys-payment-${dateStr}`,
+        id: `sys-model-${dateStr}`,
         date: dateStr,
-        description: 'Ejecución programada de pagos a proveedores.',
-        recipient: 'Administración / Pagos',
+        description: 'Entrega mensual obligatoria',
+        recipient: 'Entrega Modelo Financiero',
         amount: 0,
         status: 'pending'
       });
@@ -195,6 +238,77 @@ const App: React.FC = () => {
 
   const isDark = theme === 'dark';
 
+  const getSystemPaymentStyles = (id: string) => {
+    if (id.includes('billing')) {
+      return {
+        container: isDark ? 'bg-blue-900/10 border-blue-500/30' : 'bg-blue-50 border-blue-100',
+        text: 'text-blue-500',
+        label: 'Recepción Facturas',
+        Icon: Send
+      };
+    }
+    if (id.includes('payment')) {
+      return {
+        container: isDark ? 'bg-fuchsia-900/10 border-fuchsia-500/30' : 'bg-fuchsia-50 border-fuchsia-100',
+        text: 'text-fuchsia-500',
+        label: 'Sugerencia Pago',
+        Icon: CreditCard
+      };
+    }
+    if (id.includes('model')) {
+      return {
+        container: isDark ? 'bg-teal-900/10 border-teal-500/30' : 'bg-teal-50 border-teal-100',
+        text: 'text-teal-500',
+        label: 'Entrega Mensual',
+        Icon: Clock
+      };
+    }
+    
+    // Taxes
+    const colors: Record<string, any> = {
+      'tax-sky': { 
+        container: isDark ? 'bg-sky-900/10 border-sky-500/30' : 'bg-sky-50 border-sky-100', 
+        text: 'text-sky-500' 
+      },
+      'tax-orange': { 
+        container: isDark ? 'bg-orange-900/10 border-orange-500/30' : 'bg-orange-50 border-orange-100', 
+        text: 'text-orange-500' 
+      },
+      'tax-yellow': { 
+        container: isDark ? 'bg-yellow-900/10 border-yellow-500/30' : 'bg-yellow-50 border-yellow-100', 
+        text: 'text-yellow-600' 
+      },
+      'tax-lime': { 
+        container: isDark ? 'bg-lime-900/10 border-lime-500/30' : 'bg-lime-50 border-lime-100', 
+        text: 'text-lime-600' 
+      },
+      'tax-green': { 
+        container: isDark ? 'bg-green-900/10 border-green-500/30' : 'bg-green-50 border-green-100', 
+        text: 'text-green-600' 
+      },
+      'tax-purple': { 
+        container: isDark ? 'bg-purple-900/10 border-purple-500/30' : 'bg-purple-50 border-purple-100', 
+        text: 'text-purple-500' 
+      }
+    };
+
+    const colorKey = Object.keys(colors).find(k => id.includes(k));
+    if (colorKey) {
+      return {
+        ...colors[colorKey],
+        label: 'Impuesto / Obligación',
+        Icon: Clock
+      };
+    }
+
+    return {
+      container: isDark ? 'bg-gray-800/30 border-gray-500/30' : 'bg-gray-50 border-gray-200',
+      text: 'text-gray-500',
+      label: 'Sistema',
+      Icon: Clock
+    };
+  };
+
   // Background styles
   const mainBgClass = isDark 
     ? "bg-[#05040a] text-[#f5f3ff] bg-[radial-gradient(at_0%_0%,#1e1b4b_0px,transparent_35%),radial-gradient(at_100%_0%,#2e1065_0px,transparent_35%),radial-gradient(at_50%_100%,#1a0b2e_0px,transparent_50%),radial-gradient(at_80%_20%,#0a091a_0px,transparent_40%)]"
@@ -281,33 +395,31 @@ const App: React.FC = () => {
                 ...getSystemPaymentsForDate(selectedDay)
               ].map((p, i) => {
                 const isSystem = p.id.startsWith('sys-');
-                const isBilling = p.id.includes('billing');
+                let styles = {
+                  container: isDark ? 'bg-purple-900/10 border-purple-500/30' : 'bg-purple-50 border-purple-100',
+                  text: p.status === 'completed' ? 'text-emerald-500' : 'text-amber-600',
+                  label: p.status === 'completed' ? 'Completado' : 'Por hacer',
+                  Icon: p.status === 'completed' ? CheckCircle : Clock
+                };
+
+                if (isSystem) {
+                  styles = getSystemPaymentStyles(p.id);
+                }
 
                 return (
                   <button
                     key={p.id + i}
                     onClick={() => handleEditPayment(p)}
                     className={`w-full text-left p-6 group transition-all duration-300 rounded-3xl border flex items-center justify-between
-                      ${isSystem 
-                        ? (isBilling 
-                            ? (isDark ? 'bg-blue-900/10 border-blue-500/30' : 'bg-blue-50 border-blue-100') 
-                            : (isDark ? 'bg-fuchsia-900/10 border-fuchsia-500/30' : 'bg-fuchsia-50 border-fuchsia-100'))
-                        : (isDark ? 'bg-purple-900/10 border-purple-500/30' : 'bg-purple-50 border-purple-100')
-                      }
+                      ${styles.container}
                       hover:scale-[1.02] hover:shadow-lg
                     `}
                   >
                     <div className="flex-1 mr-4">
                       <div className="flex items-center gap-2 mb-1">
-                        {isSystem ? (
-                          isBilling ? <Send size={14} className="text-blue-500" /> : <CreditCard size={14} className="text-fuchsia-500" />
-                        ) : (
-                          p.status === 'completed' ? <CheckCircle size={14} className="text-emerald-500" /> : <Clock size={14} className="text-amber-500" />
-                        )}
-                        <span className={`text-[9px] font-bold uppercase tracking-tighter
-                          ${isSystem ? (isBilling ? 'text-blue-500' : 'text-fuchsia-500') : (p.status === 'completed' ? 'text-emerald-500' : 'text-amber-600')}
-                        `}>
-                          {isSystem ? (isBilling ? 'Recepción Facturas' : 'Sugerencia Pago') : (p.status === 'completed' ? 'Completado' : 'Por hacer')}
+                        <styles.Icon size={14} className={styles.text} />
+                        <span className={`text-[9px] font-bold uppercase tracking-tighter ${styles.text}`}>
+                          {styles.label}
                         </span>
                       </div>
                       <p className={`font-bold text-lg leading-tight ${isDark ? 'text-purple-50' : 'text-purple-900'}`}>{p.recipient}</p>

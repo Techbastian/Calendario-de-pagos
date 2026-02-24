@@ -15,7 +15,7 @@ import {
   getDate
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Clock, CheckCircle, Send, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, CheckCircle, Send, Zap, FileText, Landmark } from 'lucide-react';
 import { Payment, Theme } from '../types';
 
 interface CalendarProps {
@@ -101,6 +101,41 @@ const Calendar: React.FC<CalendarProps> = ({
           <Zap size={14} className="text-fuchsia-500" />
           <span className={`${isDark ? 'text-fuchsia-200' : 'text-fuchsia-700'} text-[9px] font-bold uppercase tracking-widest`}>Ejecución Pagos</span>
         </div>
+        
+        <div className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border shadow-sm ${isDark ? 'bg-teal-950/20 border-teal-500/20' : 'bg-teal-50 border-teal-100'}`}>
+          <FileText size={14} className="text-teal-500" />
+          <span className={`${isDark ? 'text-teal-200' : 'text-teal-700'} text-[9px] font-bold uppercase tracking-widest`}>Entrega Modelo</span>
+        </div>
+
+        <div className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border shadow-sm ${isDark ? 'bg-sky-950/20 border-sky-500/20' : 'bg-sky-50 border-sky-100'}`}>
+          <Landmark size={14} className="text-sky-500" />
+          <span className={`${isDark ? 'text-sky-200' : 'text-sky-700'} text-[9px] font-bold uppercase tracking-widest`}>Ret. Fuente</span>
+        </div>
+
+        <div className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border shadow-sm ${isDark ? 'bg-orange-950/20 border-orange-500/20' : 'bg-orange-50 border-orange-100'}`}>
+          <Landmark size={14} className="text-orange-500" />
+          <span className={`${isDark ? 'text-orange-200' : 'text-orange-700'} text-[9px] font-bold uppercase tracking-widest`}>Ret. ICA</span>
+        </div>
+
+        <div className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border shadow-sm ${isDark ? 'bg-yellow-950/20 border-yellow-500/20' : 'bg-yellow-50 border-yellow-100'}`}>
+          <FileText size={14} className="text-yellow-500" />
+          <span className={`${isDark ? 'text-yellow-200' : 'text-yellow-700'} text-[9px] font-bold uppercase tracking-widest`}>IVA / Otros</span>
+        </div>
+
+        <div className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border shadow-sm ${isDark ? 'bg-lime-950/20 border-lime-500/20' : 'bg-lime-50 border-lime-100'}`}>
+          <FileText size={14} className="text-lime-500" />
+          <span className={`${isDark ? 'text-lime-200' : 'text-lime-700'} text-[9px] font-bold uppercase tracking-widest`}>Renta</span>
+        </div>
+
+        <div className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border shadow-sm ${isDark ? 'bg-green-950/20 border-green-500/20' : 'bg-green-50 border-green-100'}`}>
+          <FileText size={14} className="text-green-500" />
+          <span className={`${isDark ? 'text-green-200' : 'text-green-700'} text-[9px] font-bold uppercase tracking-widest`}>Exógena DIAN</span>
+        </div>
+
+         <div className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border shadow-sm ${isDark ? 'bg-purple-950/20 border-purple-500/20' : 'bg-purple-50 border-purple-100'}`}>
+          <FileText size={14} className="text-purple-500" />
+          <span className={`${isDark ? 'text-purple-200' : 'text-purple-700'} text-[9px] font-bold uppercase tracking-widest`}>ICA Anual</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-7 gap-1 mb-4">
@@ -171,13 +206,26 @@ const Calendar: React.FC<CalendarProps> = ({
               </div>
 
               <div className="mt-auto relative z-10 space-y-1 pb-2">
-                {dayPayments.slice(0, 3).map((p, i) => (
-                  <div key={p.id + i} className={`h-1 rounded-full ${
-                    p.id.startsWith('sys-') 
-                    ? (p.id.includes('billing') ? 'bg-blue-400' : 'bg-fuchsia-400') 
-                    : (p.status === 'completed' ? 'bg-emerald-400' : 'bg-amber-400')
-                  }`} />
-                ))}
+                {dayPayments.slice(0, 3).map((p, i) => {
+                  let dotColor = 'bg-gray-400';
+                  if (!p.id.startsWith('sys-')) {
+                    dotColor = p.status === 'completed' ? 'bg-emerald-400' : 'bg-amber-400';
+                  } else {
+                    if (p.id.includes('billing')) dotColor = 'bg-blue-400';
+                    else if (p.id.includes('payment')) dotColor = 'bg-fuchsia-400';
+                    else if (p.id.includes('model')) dotColor = 'bg-teal-400';
+                    else if (p.id.includes('tax-sky')) dotColor = 'bg-sky-400';
+                    else if (p.id.includes('tax-orange')) dotColor = 'bg-orange-400';
+                    else if (p.id.includes('tax-yellow')) dotColor = 'bg-yellow-400';
+                    else if (p.id.includes('tax-lime')) dotColor = 'bg-lime-400';
+                    else if (p.id.includes('tax-green')) dotColor = 'bg-green-400';
+                    else if (p.id.includes('tax-purple')) dotColor = 'bg-purple-400';
+                  }
+
+                  return (
+                    <div key={p.id + i} className={`h-1 rounded-full ${dotColor}`} />
+                  );
+                })}
               </div>
 
               {hoveredDate === dayKey && dayPayments.length > 0 && (
